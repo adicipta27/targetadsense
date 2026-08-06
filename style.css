@@ -538,3 +538,25 @@ table.budget-table td input {
         display: none !important;
     }
 }
+
+/* Penyesuaian tampilan untuk layar HP (Mobile) */
+@media (max-width: 480px) {
+  /* Mengecilkan padding & ukuran teks di dalam input agar angka tidak terpotong */
+  input[type="text"],
+  input[type="number"] {
+    padding: 8px 6px !important;
+    font-size: 13px !important;
+    text-align: center;
+  }
+
+  /* Mengecilkan jarak (gap) antar kolom */
+  .row, .pos-row, div[style*="display: flex"] {
+    gap: 6px !important;
+  }
+
+  /* Menyesuaikan ukuran tombol hapus (x) */
+  button {
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+}
