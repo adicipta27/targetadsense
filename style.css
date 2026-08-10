@@ -92,11 +92,14 @@ select.month-select:hover {
     border: 1px solid var(--card-border);
     box-shadow: 0 6px 20px rgba(255, 112, 67, 0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .card:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(255, 112, 67, 0.1);
+    z-index: 2;
 }
 
 .card-title {
@@ -115,6 +118,7 @@ select.month-select:hover {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 28px;
+    position: relative;
 }
 
 /* ==========================
@@ -123,6 +127,8 @@ select.month-select:hover {
 
 .input-group {
     margin-bottom: 18px;
+    position: relative;
+    z-index: 5;
 }
 
 .input-group label {
@@ -144,6 +150,10 @@ select.month-select:hover {
     font-weight: 600;
     outline: none;
     transition: all 0.2s ease;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto !important;
+    cursor: pointer;
 }
 
 .input-group input:focus {
@@ -153,10 +163,15 @@ select.month-select:hover {
 
 input[readonly] {
     background-color: #F8FAFC !important;
-    cursor: not-allowed;
     font-weight: 800;
     color: #475569;
     border-color: #CBD5E1;
+    cursor: pointer !important;
+}
+
+/* MEMASTIKAN POPUP KALENDER FLATPICKR SELALU DI LAPISAN PALING ATAS */
+.flatpickr-calendar {
+    z-index: 999999 !important;
 }
 
 /* ==========================
@@ -170,6 +185,7 @@ input[readonly] {
     overflow: hidden;
     margin: 14px 0 18px 0;
     position: relative;
+    z-index: 1;
 }
 
 .progress-bar {
@@ -189,6 +205,8 @@ input[readonly] {
     border-radius: 14px;
     border: 1px solid #FFE0B2;
     font-size: 15px;
+    position: relative;
+    z-index: 1;
 }
 
 .hasil-row {
@@ -541,7 +559,6 @@ table.budget-table td input {
 
 /* Penyesuaian tampilan untuk layar HP (Mobile) */
 @media (max-width: 480px) {
-  /* Mengecilkan padding & ukuran teks di dalam input agar angka tidak terpotong */
   input[type="text"],
   input[type="number"] {
     padding: 8px 6px !important;
@@ -549,12 +566,10 @@ table.budget-table td input {
     text-align: center;
   }
 
-  /* Mengecilkan jarak (gap) antar kolom */
   .row, .pos-row, div[style*="display: flex"] {
     gap: 6px !important;
   }
 
-  /* Menyesuaikan ukuran tombol hapus (x) */
   button {
     padding: 6px 10px !important;
     font-size: 13px !important;
