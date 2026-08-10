@@ -90,15 +90,15 @@ let defaultBudgetItems = [
 let currentBudgetItems = JSON.parse(JSON.stringify(defaultBudgetItems));
 
 // ======================================
-// FLATPICKR & MONTH SELECTOR (PERBAIKAN TANGGAL)
+// FLATPICKR INITIALIZATION (SOLUSI DESKTOP)
 // ======================================
 
 const fp1 = flatpickr("#tanggal1", { 
     locale: "id", 
     dateFormat: "Y-m-d", 
     defaultDate: "today", 
+    disableMobile: true, // Memaksa popup kalender muncul di PC & HP
     allowInput: true, 
-    clickOpens: true, 
     onChange: () => saveDataAndCalculate() 
 });
 
@@ -106,8 +106,8 @@ const fp2 = flatpickr("#tanggal2", {
     locale: "id", 
     dateFormat: "Y-m-d", 
     defaultDate: "today", 
+    disableMobile: true, // Memaksa popup kalender muncul di PC & HP
     allowInput: true, 
-    clickOpens: true, 
     onChange: () => saveDataAndCalculate() 
 });
 
@@ -277,7 +277,7 @@ window.calculateBudget = function() {
 
     const sisaKasAwal = Math.max(0, totalKas - totalOperasional);
 
-    // LOGIKA SINKING FUND (JIKA TERSEDIA DI DOM)
+    // LOGIKA SINKING FUND
     const sfType = elSinkingFundType ? elSinkingFundType.value : "persen";
     let nominalSinkingFund = 0;
 
@@ -321,7 +321,11 @@ window.calculateBudget = function() {
 // ======================================
 
 function calculateChannel(target, uang, selectedDateStr) {
-    const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+    let selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+    if (isNaN(selectedDate.getTime())) {
+        selectedDate = new Date();
+    }
+
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth();
     const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
@@ -479,17 +483,26 @@ function applySelectedMonthData() {
 
     if (elTarget1 && document.activeElement !== elTarget1) elTarget1.value = monthData.target1 ? formatInputNumber(monthData.target1) : "";
     if (elUang1 && document.activeElement !== elUang1) elUang1.value = monthData.uang1 ? formatInputNumber(monthData.uang1) : "";
-    if (monthData.tanggal1 && fp1) fp1.setDate(monthData.tanggal1, false);
+    
+    // Set tanggal Flatpickr dengan aman
+    if (fp1) {
+        if (monthData.tanggal1) fp1.setDate(monthData.tanggal1, false);
+        else fp1.setDate(new Date(), false);
+    }
 
     if (elTarget2 && document.activeElement !== elTarget2) elTarget2.value = monthData.target2 ? formatInputNumber(monthData.target2) : "";
     if (elUang2 && document.activeElement !== elUang2) elUang2.value = monthData.uang2 ? formatInputNumber(monthData.uang2) : "";
-    if (monthData.tanggal2 && fp2) fp2.setDate(monthData.tanggal2, false);
+    
+    if (fp2) {
+        if (monthData.tanggal2) fp2.setDate(monthData.tanggal2, false);
+        else fp2.setDate(new Date(), false);
+    }
 
     if (elPemasukanEkstra && document.activeElement !== elPemasukanEkstra) {
         elPemasukanEkstra.value = monthData.pemasukanEkstra ? formatInputNumber(monthData.pemasukanEkstra) : "";
     }
 
-    // Load Sinking Fund (jika ada)
+    // Load Sinking Fund
     if (elSinkingFundType) elSinkingFundType.value = monthData.sinkingFundType || "persen";
     if (elSinkingFundVal && document.activeElement !== elSinkingFundVal) {
         const sfVal = monthData.sinkingFundVal !== undefined ? monthData.sinkingFundVal : "";
@@ -555,8 +568,8 @@ function handleInputChange(e) {
     saveDataAndCalculate();
 }
 
-// Menghubungkan event listener pada semua input termasuk tanggal (input & change)
-[elTarget1, elUang1, elTanggal1, elTarget2, elUang2, elTanggal2, elPemasukanEkstra, elSinkingFundVal].forEach(input => {
+// Menghubungkan event listener HANYA pada input angka (Tanggal ditangani khusus oleh Flatpickr)
+[elTarget1, elUang1, elTarget2, elUang2, elPemasukanEkstra, elSinkingFundVal].forEach(input => {
     if (input) {
         input.addEventListener("input", handleInputChange);
         input.addEventListener("change", handleInputChange);
