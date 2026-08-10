@@ -90,11 +90,26 @@ let defaultBudgetItems = [
 let currentBudgetItems = JSON.parse(JSON.stringify(defaultBudgetItems));
 
 // ======================================
-// FLATPICKR & MONTH SELECTOR
+// FLATPICKR & MONTH SELECTOR (PERBAIKAN TANGGAL)
 // ======================================
 
-const fp1 = flatpickr("#tanggal1", { locale: "id", dateFormat: "Y-m-d", defaultDate: "today", onChange: () => saveDataAndCalculate() });
-const fp2 = flatpickr("#tanggal2", { locale: "id", dateFormat: "Y-m-d", defaultDate: "today", onChange: () => saveDataAndCalculate() });
+const fp1 = flatpickr("#tanggal1", { 
+    locale: "id", 
+    dateFormat: "Y-m-d", 
+    defaultDate: "today", 
+    allowInput: true, 
+    clickOpens: true, 
+    onChange: () => saveDataAndCalculate() 
+});
+
+const fp2 = flatpickr("#tanggal2", { 
+    locale: "id", 
+    dateFormat: "Y-m-d", 
+    defaultDate: "today", 
+    allowInput: true, 
+    clickOpens: true, 
+    onChange: () => saveDataAndCalculate() 
+});
 
 function initMonthSelector() {
     const now = new Date();
@@ -540,9 +555,12 @@ function handleInputChange(e) {
     saveDataAndCalculate();
 }
 
-// Menghubungkan event listener hanya pada input yang dapat diisi pengguna
-[elTarget1, elUang1, elTarget2, elUang2, elPemasukanEkstra, elSinkingFundVal].forEach(input => {
-    if (input) input.addEventListener("input", handleInputChange);
+// Menghubungkan event listener pada semua input termasuk tanggal (input & change)
+[elTarget1, elUang1, elTanggal1, elTarget2, elUang2, elTanggal2, elPemasukanEkstra, elSinkingFundVal].forEach(input => {
+    if (input) {
+        input.addEventListener("input", handleInputChange);
+        input.addEventListener("change", handleInputChange);
+    }
 });
 
 initMonthSelector();
