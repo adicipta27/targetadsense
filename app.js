@@ -1,6 +1,11 @@
 import { adsenseDoc, setDoc, onSnapshot } from "./firebase.js";
 
 // ======================================
+// CONSTANT NISAB ZAKAT (BAZNAS 2026)
+// ======================================
+const NISAB_BULANAN_2026 = 7640144; // Rp 7.640.144 per bulan
+
+// ======================================
 // UTILITY FUNCTIONS (FORMATTING)
 // ======================================
 
@@ -59,11 +64,6 @@ const elSumTotalKas = document.getElementById("sumTotalKas");
 const elSumTotalOperasional = document.getElementById("sumTotalOperasional");
 const elSumSisaKas = document.getElementById("sumSisaKas");
 
-// Sinking Fund (Tabungan Upgrade Studio)
-const elSinkingFundType = document.getElementById("sinkingFundType");
-const elSinkingFundVal = document.getElementById("sinkingFundVal");
-const elSumSinkingFund = document.getElementById("sumSinkingFund");
-
 // Elemen Persentase Split Kas & Talent
 const elPersenKasStudio = document.getElementById("persenKasStudio");
 const elPersenTalent = document.getElementById("persenTalent");
@@ -71,7 +71,11 @@ const elDispKasPct = document.getElementById("dispKasPct");
 const elDispTalentPct = document.getElementById("dispTalentPct");
 const elSumKasStudio = document.getElementById("sumKasStudio");
 const elSumTotalTalent = document.getElementById("sumTotalTalent");
+
+// Elemen Gaji & Zakat Talent
 const elSumGajiPerTalent = document.getElementById("sumGajiPerTalent");
+const elSumZakatPerTalent = document.getElementById("sumZakatPerTalent");
+const elSumGajiBersihPerTalent = document.getElementById("sumGajiBersihPerTalent");
 
 let allFirebaseData = {};
 let currentMonthKey = "";
@@ -90,14 +94,14 @@ let defaultBudgetItems = [
 let currentBudgetItems = JSON.parse(JSON.stringify(defaultBudgetItems));
 
 // ======================================
-// FLATPICKR INITIALIZATION (SOLUSI DESKTOP)
+// FLATPICKR INITIALIZATION
 // ======================================
 
 const fp1 = flatpickr("#tanggal1", { 
     locale: "id", 
     dateFormat: "Y-m-d", 
     defaultDate: "today", 
-    disableMobile: true, // Memaksa popup kalender muncul di PC & HP
+    disableMobile: true,
     allowInput: true, 
     onChange: () => saveDataAndCalculate() 
 });
@@ -106,7 +110,7 @@ const fp2 = flatpickr("#tanggal2", {
     locale: "id", 
     dateFormat: "Y-m-d", 
     defaultDate: "today", 
-    disableMobile: true, // Memaksa popup kalender muncul di PC & HP
+    disableMobile: true,
     allowInput: true, 
     onChange: () => saveDataAndCalculate() 
 });
@@ -170,15 +174,6 @@ if (elPersenTalent) {
         elPersenTalent.value = val;
         if (elPersenKasStudio) elPersenKasStudio.value = 100 - val;
 
-        calculateBudget();
-        saveDataAndCalculate();
-    });
-}
-
-// EVENT LISTENER SINKING FUND TYPE
-if (elSinkingFundType) {
-    elSinkingFundType.addEventListener("change", () => {
-        if (elSinkingFundVal) elSinkingFundVal.value = "";
         calculateBudget();
         saveDataAndCalculate();
     });
@@ -277,43 +272,45 @@ window.calculateBudget = function() {
 
     const sisaKasAwal = Math.max(0, totalKas - totalOperasional);
 
-    // LOGIKA SINKING FUND
-    const sfType = elSinkingFundType ? elSinkingFundType.value : "persen";
-    let nominalSinkingFund = 0;
-
-    if (sfType === "persen") {
-        let pct = parseFloat(elSinkingFundVal ? elSinkingFundVal.value : 0) || 0;
-        pct = Math.min(100, Math.max(0, pct));
-        nominalSinkingFund = Math.round(sisaKasAwal * (pct / 100));
-    } else {
-        nominalSinkingFund = parseRawNumber(elSinkingFundVal ? elSinkingFundVal.value : 0);
-    }
-    nominalSinkingFund = Math.min(sisaKasAwal, nominalSinkingFund);
-
-    const sisaKasBersih = Math.max(0, sisaKasAwal - nominalSinkingFund);
-
     // Ambil Persentase Split
     let pKas = parseFloat(elPersenKasStudio ? elPersenKasStudio.value : 20) || 0;
     pKas = Math.min(100, Math.max(0, pKas));
     const pTalent = 100 - pKas;
 
     // Hitung Nominal Split dari Sisa Kas Bersih
-    const nominalKasStudio = Math.round(sisaKasBersih * (pKas / 100));
-    const nominalTotalTalent = sisaKasBersih - nominalKasStudio;
-    const nominalPerTalent = Math.round(nominalTotalTalent / 2);
+    const nominalKasStudio = Math.round(sisaKasAwal * (pKas / 100));
+    const nominalTotalTalent = sisaKasAwal - nominalKasStudio;
+    const nominalGajiKotorPerTalent = Math.round(nominalTotalTalent / 2);
+
+    // --- LOGIKA NISAB ZAKAT PENGHASILAN (BAZNAS 2026: Rp 7.640.144) ---
+    let zakatPerTalent = 0;
+    let statusZakatKet = "";
+
+    if (nominalGajiKotorPerTalent >= NISAB_BULANAN_2026) {
+        zakatPerTalent = Math.round(nominalGajiKotorPerTalent * 0.025);
+        statusZakatKet = `- ${formatRupiah(zakatPerTalent)} <span style="font-size:11px; color:#C62828;">(Wajib Zakat 2.5%)</span>`;
+    } else {
+        zakatPerTalent = 0;
+        statusZakatKet = `Rp 0 <span style="font-size:11px; color:#558B2F;">(Belum Wajib Nisab < Rp7.64M)</span>`;
+    }
+
+    const gajiBersihPerTalent = nominalGajiKotorPerTalent - zakatPerTalent;
 
     // Update UI Tampilan Pembukuan
     if (elSumTotalKas) elSumTotalKas.textContent = formatRupiah(totalKas);
     if (elSumTotalOperasional) elSumTotalOperasional.textContent = "- " + formatRupiah(totalOperasional);
     if (elSumSisaKas) elSumSisaKas.textContent = formatRupiah(sisaKasAwal);
-    if (elSumSinkingFund) elSumSinkingFund.textContent = formatRupiah(nominalSinkingFund);
 
     if (elDispKasPct) elDispKasPct.textContent = `${pKas}%`;
     if (elDispTalentPct) elDispTalentPct.textContent = `${pTalent}%`;
 
     if (elSumKasStudio) elSumKasStudio.textContent = formatRupiah(nominalKasStudio);
     if (elSumTotalTalent) elSumTotalTalent.textContent = formatRupiah(nominalTotalTalent);
-    if (elSumGajiPerTalent) elSumGajiPerTalent.textContent = `${formatRupiah(nominalPerTalent)} / orang`;
+    
+    // Tampilan Nominal Gaji Kotor, Zakat, dan Gaji Bersih per Talent
+    if (elSumGajiPerTalent) elSumGajiPerTalent.textContent = `${formatRupiah(nominalGajiKotorPerTalent)} / orang`;
+    if (elSumZakatPerTalent) elSumZakatPerTalent.innerHTML = `Zakat Penghasilan: ${statusZakatKet}`;
+    if (elSumGajiBersihPerTalent) elSumGajiBersihPerTalent.textContent = `Bersih Diterima: ${formatRupiah(gajiBersihPerTalent)}`;
 };
 
 // ======================================
@@ -475,7 +472,7 @@ function updateUI() {
 // ======================================
 
 function applySelectedMonthData() {
-    [elTarget1, elUang1, elTanggal1, elTarget2, elUang2, elTanggal2, elPemasukanEkstra, elSinkingFundType, elSinkingFundVal, elPersenKasStudio, elPersenTalent].forEach(el => {
+    [elTarget1, elUang1, elTanggal1, elTarget2, elUang2, elTanggal2, elPemasukanEkstra, elPersenKasStudio, elPersenTalent].forEach(el => {
         if (el) el.disabled = false;
     });
 
@@ -484,7 +481,6 @@ function applySelectedMonthData() {
     if (elTarget1 && document.activeElement !== elTarget1) elTarget1.value = monthData.target1 ? formatInputNumber(monthData.target1) : "";
     if (elUang1 && document.activeElement !== elUang1) elUang1.value = monthData.uang1 ? formatInputNumber(monthData.uang1) : "";
     
-    // Set tanggal Flatpickr dengan aman
     if (fp1) {
         if (monthData.tanggal1) fp1.setDate(monthData.tanggal1, false);
         else fp1.setDate(new Date(), false);
@@ -500,13 +496,6 @@ function applySelectedMonthData() {
 
     if (elPemasukanEkstra && document.activeElement !== elPemasukanEkstra) {
         elPemasukanEkstra.value = monthData.pemasukanEkstra ? formatInputNumber(monthData.pemasukanEkstra) : "";
-    }
-
-    // Load Sinking Fund
-    if (elSinkingFundType) elSinkingFundType.value = monthData.sinkingFundType || "persen";
-    if (elSinkingFundVal && document.activeElement !== elSinkingFundVal) {
-        const sfVal = monthData.sinkingFundVal !== undefined ? monthData.sinkingFundVal : "";
-        elSinkingFundVal.value = (monthData.sinkingFundType === "nominal") ? formatInputNumber(sfVal) : sfVal;
     }
 
     // Load Persentase Split
@@ -539,10 +528,6 @@ function saveDataAndCalculate() {
                     tanggal2: elTanggal2 ? elTanggal2.value : "",
                     pemasukanEkstra: parseRawNumber(elPemasukanEkstra ? elPemasukanEkstra.value : 0),
                     budgetTotalKas: parseRawNumber(elBudgetTotalKas ? elBudgetTotalKas.value : 0),
-                    sinkingFundType: elSinkingFundType ? elSinkingFundType.value : "persen",
-                    sinkingFundVal: (elSinkingFundType && elSinkingFundType.value === "nominal")
-                        ? parseRawNumber(elSinkingFundVal ? elSinkingFundVal.value : 0)
-                        : (parseFloat(elSinkingFundVal ? elSinkingFundVal.value : 0) || 0),
                     persenKasStudio: parseFloat(elPersenKasStudio ? elPersenKasStudio.value : 20) || 0,
                     budgetItems: currentBudgetItems,
                     updatedAt: new Date().toISOString()
@@ -559,17 +544,13 @@ function saveDataAndCalculate() {
 
 function handleInputChange(e) {
     if (e && e.target && e.target.type === "text" && !e.target.id.includes("tanggal")) {
-        if (e.target.id === "sinkingFundVal" && elSinkingFundType && elSinkingFundType.value === "persen") {
-            // Abaikan format rupiah untuk persentase
-        } else {
-            e.target.value = formatInputNumber(e.target.value);
-        }
+        e.target.value = formatInputNumber(e.target.value);
     }
     saveDataAndCalculate();
 }
 
-// Menghubungkan event listener HANYA pada input angka (Tanggal ditangani khusus oleh Flatpickr)
-[elTarget1, elUang1, elTarget2, elUang2, elPemasukanEkstra, elSinkingFundVal].forEach(input => {
+// Menghubungkan event listener pada input angka
+[elTarget1, elUang1, elTarget2, elUang2, elPemasukanEkstra].forEach(input => {
     if (input) {
         input.addEventListener("input", handleInputChange);
         input.addEventListener("change", handleInputChange);
